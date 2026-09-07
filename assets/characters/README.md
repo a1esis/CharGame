@@ -12,8 +12,7 @@ garfield.png
 hachiware.png
 trigger-happy.png
 sackboy.png
-spongebob.png
-fuggler.png
+spongebob-fuggler.png
 domo.png
 jake.png
 ```

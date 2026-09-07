@@ -2,7 +2,7 @@
 
 An original turn-based battle game for the browser, inspired by classic
 handheld monster-battle RPGs but with its own characters, moves, art, and
-UI. Pick a fighter from a roster of 8 original/parody characters, pick an
+UI. Pick a fighter from a roster of 7 original/parody characters, pick an
 opponent, and battle it out with 4 unique moves each.
 
 Pure static site — plain HTML/CSS/JS, no build step, no backend, no
