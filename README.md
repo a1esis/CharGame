@@ -51,4 +51,10 @@ a secure context (`https://` or `localhost`).
   the same strength value instead, so the experience still works.
 - All sound (whoosh, ignite) is synthesized at runtime with the Web Audio
   API — no audio files.
-- Tap the extinguished candle to relight it and try again.
+- Once the candle is out, drag the spoon resting beside the glass and sweep
+  it across the sorbet to eat it — the candle fades aside, and the sorbet's
+  visible level drops (in smooth, rolling scoops) proportional to how far
+  the spoon has swept. Tap anywhere before touching the spoon to relight
+  instead without eating.
+- Once the sorbet is fully eaten, tap to reset — a full sorbet reappears
+  and the candle relights.

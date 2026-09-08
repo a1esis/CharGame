@@ -94,29 +94,53 @@
     return BOWL_NECK_HALF + (CUP_RIM_HALF - BOWL_NECK_HALF) * Math.pow(1 - ct, 0.6);
   }
 
-  function drawSorbet(g, flameIntensity, flameLean) {
-    const top = SORBET_APEX_Y;
-    const bottom = BOWL_BOTTOM_Y;
-    const totalRows = bottom - top;
+  // half-width of the sorbet's full silhouette (dome above the rim, bowl
+  // taper below it) at a given row — the shape as if nothing were eaten.
+  function sorbetHalfWidthAt(y) {
+    if (y < SORBET_APEX_Y || y > BOWL_BOTTOM_Y) return 0;
+    if (y < CUP_RIM_Y) {
+      const dt = (y - SORBET_APEX_Y) / (CUP_RIM_Y - SORBET_APEX_Y);
+      const edge = 1 - dt;
+      return Math.max(1, SORBET_RIM_HALF * Math.sqrt(Math.max(0, 1 - edge * edge)));
+    }
+    return bowlHalfWidth(y);
+  }
+
+  // as sorbetLevel goes 1 -> 0, the remaining food's visible top drops
+  // from the dome's apex down to the bottom of the bowl (scooped from
+  // the top down, like eating a real scoop).
+  function sorbetTopY(level) {
+    return lerp(BOWL_BOTTOM_Y, SORBET_APEX_Y, clamp(level, 0, 1));
+  }
+
+  function isOverSorbet(x, y, level) {
+    const topY = sorbetTopY(level);
+    if (y < topY || y > BOWL_BOTTOM_Y) return false;
+    return Math.abs(x - CUP_CX) <= sorbetHalfWidthAt(y);
+  }
+
+  function drawSorbet(g, flameIntensity, flameLean, level) {
+    const totalRows = BOWL_BOTTOM_Y - SORBET_APEX_Y;
+    const topY = sorbetTopY(level);
+    const startY = Math.max(SORBET_APEX_Y, Math.floor(topY) - 5);
     const glowCX = CUP_CX + flameLean * 4;
     const glowCY = SORBET_APEX_Y + 6;
     const glowRadius = SORBET_RIM_HALF * 1.4;
 
-    for (let i = 0; i < totalRows; i++) {
-      const y = top + i;
-      const t = i / totalRows;
-      let halfW;
-      if (y < CUP_RIM_Y) {
-        const dt = (y - SORBET_APEX_Y) / (CUP_RIM_Y - SORBET_APEX_Y);
-        const edge = 1 - dt;
-        halfW = Math.max(1, SORBET_RIM_HALF * Math.sqrt(Math.max(0, 1 - edge * edge)));
-      } else {
-        halfW = bowlHalfWidth(y);
-      }
+    for (let y = startY; y < BOWL_BOTTOM_Y; y++) {
+      const halfW = sorbetHalfWidthAt(y);
+      if (halfW <= 0) continue;
+      const t = (y - SORBET_APEX_Y) / totalRows;
       const verticalFactor = 1 - t * 0.62;
 
       for (let x = -halfW; x < halfW; x++) {
         const px = Math.round(CUP_CX + x);
+
+        // smooth, rolling boundary (two low-frequency sine waves) instead
+        // of a razor-flat or jagged cutoff as the sorbet is eaten
+        const edgeWave = Math.sin(px * 0.24) * 2.4 + Math.sin(px * 0.09 + 1.7) * 1.6;
+        if (y < topY + edgeWave) continue;
+
         const xNorm = x / halfW;
         const biasedX = clamp(xNorm + 0.22, -1, 1);
         const horizontalFactor = 1 - Math.pow(Math.abs(biasedX), 1.6) * 0.75;
@@ -208,36 +232,38 @@
     g.stroke();
   }
 
-  // a small metal spoon resting on the surface beside the glass
-  function drawSpoon(g) {
+  // a small metal spoon; (sx, sy) is the scoop tip itself (the part that
+  // digs into the sorbet), with the handle trailing away along `angle` —
+  // this makes the scoop position the natural thing to drag and hit-test.
+  function drawSpoon(g, sx, sy, angle) {
     g.save();
-    g.translate(CUP_CX + FOOT_HALF_W + 7, FOOT_Y - 4);
-    g.rotate(-0.3);
+    g.translate(sx, sy);
+    g.rotate(angle);
 
     // contact shadow
     g.fillStyle = "rgba(0,0,0,0.3)";
     g.beginPath();
-    g.ellipse(6, 2.5, 15, 3, 0, 0, Math.PI * 2);
+    g.ellipse(11, 2.5, 15, 3, 0, 0, Math.PI * 2);
     g.fill();
 
     const handleLen = 22;
     g.fillStyle = "rgba(21,19,23,0.9)";
-    g.fillRect(0, -1.2, handleLen, 2.4);
+    g.fillRect(5, -1.2, handleLen, 2.4);
     g.beginPath();
-    g.arc(handleLen, 0, 1.3, 0, Math.PI * 2);
+    g.arc(5 + handleLen, 0, 1.3, 0, Math.PI * 2);
     g.fill();
 
     g.beginPath();
-    g.ellipse(-5, 0, 6.5, 3.8, 0, 0, Math.PI * 2);
+    g.ellipse(0, 0, 6.5, 3.8, 0, 0, Math.PI * 2);
     g.fillStyle = "rgba(24,22,26,0.92)";
     g.fill();
 
     g.fillStyle = "rgba(255,255,255,0.22)";
     g.beginPath();
-    g.ellipse(-6.3, -1.1, 2.4, 1, -0.3, 0, Math.PI * 2);
+    g.ellipse(-1.3, -1.1, 2.4, 1, -0.3, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = "rgba(255,255,255,0.13)";
-    g.fillRect(5, -0.5, handleLen - 8, 1);
+    g.fillRect(10, -0.5, handleLen - 8, 1);
 
     g.restore();
   }
@@ -305,6 +331,38 @@
       life: maxLife,
       maxLife,
       size: 1 + Math.random() * 1.5,
+    };
+  }
+
+  // ---------------------------------------------------------------
+  // eating: drag the spoon (once the candle is out) and sweep it across
+  // the sorbet to scoop it away
+  // ---------------------------------------------------------------
+  const SPOON_REST_X = CUP_CX + FOOT_HALF_W + 3;
+  const SPOON_REST_Y = FOOT_Y - 2;
+  const SPOON_REST_ANGLE = -0.3;
+  const SPOON_HIT_RADIUS = 22;
+  const DEPLETION_PER_PX = 1 / 460;
+
+  const spoon = {
+    x: SPOON_REST_X,
+    y: SPOON_REST_Y,
+    angle: SPOON_REST_ANGLE,
+    dragging: false,
+    returning: false,
+    lastX: SPOON_REST_X,
+    lastY: SPOON_REST_Y,
+  };
+  let sorbetLevel = 1;
+  let eatingStarted = false;
+  let candleOpacity = 1;
+  let justDragged = false;
+
+  function toCanvasCoords(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) * (RENDER_W / rect.width),
+      y: (clientY - rect.top) * (RENDER_H / rect.height),
     };
   }
 
@@ -421,7 +479,7 @@
   // ---------------------------------------------------------------
   // state machine
   // ---------------------------------------------------------------
-  let sceneState = "intro"; // intro | lit | extinguished
+  let sceneState = "intro"; // intro | lit | extinguished | finished
   let hintTimer = null;
 
   function clamp(n, min, max) {
@@ -467,13 +525,26 @@
       messageEl.textContent = "you did it.";
       messageEl.style.opacity = "1";
       setTimeout(() => {
+        if (eatingStarted) return; // spoon's already out — leave it be
         messageEl.textContent = "you did it. — tap to relight";
       }, 2600);
     }, 1100);
   }
 
-  function relight() {
+  function finishEating() {
     if (sceneState !== "extinguished") return;
+    sceneState = "finished";
+    setTimeout(() => {
+      messageEl.textContent = "all gone.";
+      messageEl.style.opacity = "1";
+      setTimeout(() => {
+        messageEl.textContent = "all gone. — tap to reset";
+      }, 2200);
+    }, 500);
+  }
+
+  function relight() {
+    if (sceneState !== "extinguished" && sceneState !== "finished") return;
     sceneState = "lit";
     flame.alive = true;
     flame.intensity = 0;
@@ -483,6 +554,14 @@
     smoke = [];
     micSmoothed = micBaseline;
     fallbackStrength = 0;
+    sorbetLevel = 1;
+    eatingStarted = false;
+    candleOpacity = 1;
+    spoon.x = SPOON_REST_X;
+    spoon.y = SPOON_REST_Y;
+    spoon.angle = SPOON_REST_ANGLE;
+    spoon.dragging = false;
+    spoon.returning = false;
     messageEl.style.opacity = "0";
     playIgnite();
     setTimeout(() => {
@@ -494,8 +573,49 @@
 
   stage.addEventListener("click", (e) => {
     if (e.target === blowBtn) return;
-    if (sceneState === "extinguished") relight();
+    if (justDragged) {
+      justDragged = false;
+      return;
+    }
+    if (sceneState === "finished") {
+      relight();
+    } else if (sceneState === "extinguished" && !eatingStarted) {
+      relight();
+    }
   });
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (sceneState !== "extinguished") return;
+    const p = toCanvasCoords(e.clientX, e.clientY);
+    if (Math.hypot(p.x - spoon.x, p.y - spoon.y) > SPOON_HIT_RADIUS) return;
+    spoon.dragging = true;
+    spoon.returning = false;
+    spoon.lastX = spoon.x;
+    spoon.lastY = spoon.y;
+    eatingStarted = true;
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    e.preventDefault();
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!spoon.dragging) return;
+    const p = toCanvasCoords(e.clientX, e.clientY);
+    spoon.x = clamp(p.x, 4, RENDER_W - 4);
+    spoon.y = clamp(p.y, 4, RENDER_H - 4);
+    e.preventDefault();
+  });
+  function endSpoonDrag(e) {
+    if (!spoon.dragging) return;
+    spoon.dragging = false;
+    spoon.returning = true;
+    justDragged = true;
+    try {
+      canvas.releasePointerCapture(e.pointerId);
+    } catch (err) {}
+  }
+  canvas.addEventListener("pointerup", endSpoonDrag);
+  canvas.addEventListener("pointercancel", endSpoonDrag);
 
   function pressStart(e) {
     e.preventDefault();
@@ -558,6 +678,32 @@
       emberGlow = Math.max(0, emberGlow - dt * 0.55);
     }
 
+    // spoon: dragging sweeps sorbet away; released, it drifts back to rest
+    if (spoon.dragging) {
+      const dist = Math.hypot(spoon.x - spoon.lastX, spoon.y - spoon.lastY);
+      if (dist > 0.02 && sorbetLevel > 0) {
+        if (isOverSorbet(spoon.x, spoon.y, sorbetLevel) || isOverSorbet(spoon.lastX, spoon.lastY, sorbetLevel)) {
+          sorbetLevel = clamp(sorbetLevel - dist * DEPLETION_PER_PX, 0, 1);
+        }
+      }
+      spoon.lastX = spoon.x;
+      spoon.lastY = spoon.y;
+    } else if (spoon.returning) {
+      spoon.x = lerp(spoon.x, SPOON_REST_X, 0.16);
+      spoon.y = lerp(spoon.y, SPOON_REST_Y, 0.16);
+      if (Math.hypot(spoon.x - SPOON_REST_X, spoon.y - SPOON_REST_Y) < 0.4) {
+        spoon.x = SPOON_REST_X;
+        spoon.y = SPOON_REST_Y;
+        spoon.returning = false;
+      }
+    }
+
+    if (eatingStarted && candleOpacity > 0) {
+      candleOpacity = Math.max(0, candleOpacity - dt * 1.4);
+    }
+
+    if (sorbetLevel <= 0) finishEating();
+
     // smoke
     for (let i = smoke.length - 1; i >= 0; i--) {
       const p = smoke[i];
@@ -608,10 +754,14 @@
       ctx.fillRect(Math.round(d.x + Math.sin(d.phase * 0.6) * d.drift * 0.1), Math.round(d.y), 1, 1);
     }
 
-    drawSorbet(ctx, effectiveLight, flame.lean);
+    drawSorbet(ctx, effectiveLight, flame.lean, sorbetLevel);
     drawGlass(ctx);
-    drawSpoon(ctx);
-    ctx.drawImage(staticLayer, 0, 0);
+    drawSpoon(ctx, spoon.x, spoon.y, spoon.angle);
+    if (candleOpacity > 0.01) {
+      ctx.globalAlpha = candleOpacity;
+      ctx.drawImage(staticLayer, 0, 0);
+      ctx.globalAlpha = 1;
+    }
 
     // flame
     if (flame.intensity > 0.02) {

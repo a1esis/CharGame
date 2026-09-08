@@ -42,6 +42,7 @@ html, body {
   image-rendering: crisp-edges;
   background: #000;
   display: block;
+  touch-action: none;
 }
 
 /* soft dark edges around the whole viewport, deepening the "pool of light" feel */
