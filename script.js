@@ -746,12 +746,17 @@
     const effectiveLight = Math.max(flame.intensity, emberGlow * 0.3);
     const pulse = 1 + Math.sin(now * 0.003) * 0.03;
 
-    // light pool
+    // light pool — radius is capped well inside the canvas so the
+    // gradient always reaches true zero alpha before hitting the edge;
+    // otherwise a wider/shorter viewport can letterbox the canvas and
+    // clip the glow into a visible hard-edged rectangle
     if (effectiveLight > 0.01) {
-      const r = (118 + flame.lean * 6) * effectiveLight * pulse + 6;
+      const maxR = Math.min(RENDER_W, RENDER_H) / 2 - 12;
+      const r = Math.min((118 + flame.lean * 6) * effectiveLight * pulse + 6, maxR);
       const grad = ctx.createRadialGradient(LIGHT_CX, LIGHT_CY, 0, LIGHT_CX, LIGHT_CY, r);
       grad.addColorStop(0, `rgba(255,176,92,${0.55 * effectiveLight})`);
-      grad.addColorStop(0.45, `rgba(230,130,60,${0.28 * effectiveLight})`);
+      grad.addColorStop(0.4, `rgba(230,130,60,${0.28 * effectiveLight})`);
+      grad.addColorStop(0.72, `rgba(180,90,45,${0.1 * effectiveLight})`);
       grad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, RENDER_W, RENDER_H);
