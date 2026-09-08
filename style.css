@@ -149,6 +149,16 @@ html, body {
   text-align: center;
   padding: 0 24px;
 }
+#intro-subtitle {
+  margin: 0;
+  font-size: clamp(12px, 2.6vw, 15px);
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  opacity: 0.6;
+  text-align: center;
+  padding: 0 24px;
+  max-width: 360px;
+}
 #intro-action {
   margin: 0;
   font-size: clamp(14px, 3.2vw, 18px);
