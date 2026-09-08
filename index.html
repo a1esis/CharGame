@@ -2,178 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-<title>Character Clash</title>
-<meta name="description" content="Character Clash — an original turn-based battle game." />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>mango sorbet candle</title>
+<meta name="description" content="a tiny interactive pixel-art candle. blow into your microphone to put it out." />
+<meta name="theme-color" content="#050403" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕯️</text></svg>" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div id="app">
+<div id="stage">
+  <canvas id="scene" width="180" height="240"></canvas>
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
 
-  <!-- ============ TITLE SCREEN ============ -->
-  <section id="screen-title" class="screen active">
-    <div class="title-bg">
-      <span class="floaty floaty-1">⚡</span>
-      <span class="floaty floaty-2">🛡️</span>
-      <span class="floaty floaty-3">✦</span>
-      <span class="floaty floaty-4">💥</span>
-      <span class="floaty floaty-5">✦</span>
-      <span class="floaty floaty-6">⚔️</span>
-    </div>
-    <div class="title-wrap">
-      <h1 class="game-logo">
-        <span class="logo-line logo-line-1">CHARACTER</span>
-        <span class="logo-line logo-line-2">CLASH</span>
-      </h1>
-      <p class="logo-sub">an original turn&#8209;based brawl</p>
-      <div class="title-buttons">
-        <button id="btn-start" class="btn btn-primary btn-lg">Start Game</button>
-        <button id="btn-howto" class="btn btn-secondary btn-lg">How to Play</button>
-      </div>
-    </div>
-    <p class="title-footer">Made for the browser · No install needed</p>
-  </section>
+  <div id="hint" class="veil-text">blow into your microphone</div>
+  <div id="message" class="veil-text"></div>
 
-  <!-- ============ HOW TO PLAY OVERLAY ============ -->
-  <div id="modal-howto" class="modal-overlay">
-    <div class="modal-box">
-      <h2>How to Play</h2>
-      <ol class="howto-list">
-        <li><strong>Pick your fighter</strong> from the roster of 7 characters, then pick who they'll face.</li>
-        <li>Battles are <strong>turn-based</strong> — each round, you and your opponent choose one move.</li>
-        <li>Whoever has higher <strong>Speed</strong> acts first that round.</li>
-        <li>Every fighter has <strong>4 unique moves</strong>: some deal damage, some heal, some buff or debuff stats.</li>
-        <li>Watch accuracy — powerful moves can <strong>miss</strong>. Critical hits deal bonus damage.</li>
-        <li>Reduce your opponent's HP to <strong>zero</strong> before they do the same to you!</li>
-      </ol>
-      <button id="btn-close-howto" class="btn btn-primary">Got it!</button>
-    </div>
+  <button id="blow-btn" class="hidden" aria-label="hold to blow">hold to blow</button>
+
+  <div id="intro">
+    <p id="intro-title">a small lit thing, somewhere dark.</p>
+    <p id="intro-action">tap to begin</p>
   </div>
-
-  <!-- ============ CHARACTER SELECT SCREEN ============ -->
-  <section id="screen-select" class="screen">
-    <header class="select-header">
-      <h2 id="select-title">Choose Your Fighter</h2>
-      <p id="select-subtitle" class="select-subtitle">Tap a character to preview their stats and moves.</p>
-    </header>
-
-    <div id="roster-grid" class="roster-grid"></div>
-
-    <div id="preview-panel" class="preview-panel hidden">
-      <div class="preview-portrait-wrap">
-        <img id="preview-portrait" class="preview-portrait" alt="" />
-      </div>
-      <div class="preview-info">
-        <h3 id="preview-name">—</h3>
-        <p id="preview-title" class="preview-title-text">—</p>
-        <p id="preview-tagline">—</p>
-        <div class="stat-bars" id="preview-stats"></div>
-        <div class="moves-preview" id="preview-moves"></div>
-      </div>
-    </div>
-
-    <div class="select-actions">
-      <button id="btn-select-back" class="btn btn-secondary">Back</button>
-      <button id="btn-randomize" class="btn btn-secondary">Randomize Opponent</button>
-      <button id="btn-confirm" class="btn btn-primary" disabled>Confirm</button>
-    </div>
-  </section>
-
-  <!-- ============ BATTLE SCREEN ============ -->
-  <section id="screen-battle" class="screen">
-    <div id="battle-arena" class="battle-arena">
-
-      <div class="turn-banner" id="turn-banner">Battle Start!</div>
-
-      <div class="combatant-row opponent-row">
-        <div class="stat-card opponent-card" id="opp-card">
-          <div class="stat-card-top">
-            <span class="fighter-name" id="opp-name">—</span>
-            <span class="fighter-rank">Lv 50</span>
-          </div>
-          <div class="hp-row">
-            <span class="hp-label">HP</span>
-            <div class="hp-bar-track"><div class="hp-bar-fill" id="opp-hp-fill"></div></div>
-          </div>
-          <div class="hp-numbers"><span id="opp-hp-text">100/100</span></div>
-          <div class="status-badges" id="opp-status-badges"></div>
-        </div>
-        <div class="sprite-wrap opponent-sprite-wrap">
-          <div class="sprite-shadow"></div>
-          <img id="opp-sprite" class="sprite opponent-sprite" alt="" />
-          <div class="fx-layer" id="opp-fx-layer"></div>
-        </div>
-      </div>
-
-      <div class="combatant-row player-row">
-        <div class="sprite-wrap player-sprite-wrap">
-          <div class="sprite-shadow"></div>
-          <img id="player-sprite" class="sprite player-sprite" alt="" />
-          <div class="fx-layer" id="player-fx-layer"></div>
-        </div>
-        <div class="stat-card player-card" id="player-card">
-          <div class="stat-card-top">
-            <span class="fighter-name" id="player-name">—</span>
-            <span class="fighter-rank">Lv 50</span>
-          </div>
-          <div class="hp-row">
-            <span class="hp-label">HP</span>
-            <div class="hp-bar-track"><div class="hp-bar-fill" id="player-hp-fill"></div></div>
-          </div>
-          <div class="hp-numbers"><span id="player-hp-text">100/100</span></div>
-          <div class="status-badges" id="player-status-badges"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="battle-console">
-      <div class="battle-log" id="battle-log">
-        <p>A battle is about to begin!</p>
-      </div>
-
-      <div class="action-panel" id="action-panel">
-        <div class="action-menu" id="action-menu">
-          <button class="btn action-btn" id="btn-menu-fight">Fight</button>
-          <button class="btn action-btn" id="btn-menu-stats">Stats</button>
-          <button class="btn action-btn action-btn-danger" id="btn-menu-forfeit">Forfeit</button>
-        </div>
-
-        <div class="moves-menu hidden" id="moves-menu">
-          <div class="moves-grid" id="moves-grid"></div>
-          <button class="btn btn-secondary btn-small" id="btn-moves-back">Back</button>
-        </div>
-
-        <div class="stats-menu hidden" id="stats-menu">
-          <div class="stats-columns" id="stats-columns"></div>
-          <button class="btn btn-secondary btn-small" id="btn-stats-back">Back</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ RESULT OVERLAY ============ -->
-  <div id="modal-result" class="modal-overlay">
-    <div class="modal-box result-box">
-      <h2 id="result-title">VICTORY!</h2>
-      <p id="result-subtitle">You won the clash!</p>
-      <div class="result-buttons">
-        <button id="btn-rematch" class="btn btn-primary">Rematch</button>
-        <button id="btn-new-fighters" class="btn btn-secondary">Choose New Fighters</button>
-        <button id="btn-main-menu" class="btn btn-secondary">Main Menu</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="screen-transition" class="screen-transition"></div>
 </div>
 
-<script src="data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -1,29 +1,23 @@
-# Character Clash
+# mango sorbet candle
 
-An original turn-based battle game for the browser, inspired by classic
-handheld monster-battle RPGs but with its own characters, moves, art, and
-UI. Pick a fighter from a roster of 7 original/parody characters, pick an
-opponent, and battle it out with 4 unique moves each.
+A tiny, atmospheric interactive page. A pixel-art cup of mango sorbet sits
+in the dark with a lit birthday candle. Blow into your microphone and the
+flame reacts — lean, flicker, shrink — and eventually goes out.
 
-Pure static site — plain HTML/CSS/JS, no build step, no backend, no
-database. Runs anywhere, including GitHub Pages.
+Pure static site — HTML/CSS/JS and the Canvas + Web Audio APIs. No build
+step, no backend, no external assets. The whole scene is drawn procedurally
+onto a small (180×240) offscreen canvas and scaled up with nearest-neighbor
+interpolation for a genuinely low-res, pixelated look.
 
 ## Files
 
 ```
-index.html   Screens (title, character select, battle, results)
-style.css    All visual styling and animation
-data.js      Character stats, moves, and arena definitions — edit freely
-script.js    Battle engine, AI, and UI wiring
-assets/
-  characters/   Character art (falls back to a generated placeholder)
-  backgrounds/  Arena art (falls back to a CSS gradient)
-  audio/        Sound effects (silent by default, easy to enable)
+index.html   markup + the (nearly empty) UI chrome
+style.css    dark theme, vignette, scanlines, layout
+script.js    scene rendering, particles, mic analysis, audio, state machine
 ```
 
 ## Run it locally
-
-Any static file server works:
 
 ```
 npx serve .
@@ -33,34 +27,28 @@ or
 python3 -m http.server
 ```
 
-Then open the printed local address in your browser.
+Then open the printed local address. Microphone access generally requires
+a secure context (`https://` or `localhost`).
 
 ## Deploy to GitHub Pages
 
-1. Push this folder's contents to the root of a GitHub repository (or to a
-   `/docs` folder).
-2. On GitHub, go to **Settings → Pages**.
-3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
-4. Pick the branch (usually `main`) and folder (`/root` or `/docs`).
-5. Save — GitHub gives you a URL like `https://username.github.io/repo/`.
+1. Push these files to the root of a GitHub repository (or a `/docs` folder).
+2. Settings → Pages → Build and deployment → Source: **Deploy from a branch**.
+3. Branch `main`, folder `/ (root)` → Save.
 
-## Customizing
+## How it works
 
-- **Rebalance or add moves/characters:** edit `data.js`. Nothing else needs
-  to change — the roster grid, move buttons, and AI all read from it.
-- **Real artwork:** see `assets/characters/README.md` and
-  `assets/backgrounds/README.md` for exact filenames.
-- **Sound:** see `assets/audio/README.md`.
-
-## How battles work
-
-- Both fighters pick a move each round; whoever has higher effective Speed
-  acts first.
-- Damage scales with the move's power and category (physical uses Attack,
-  special uses Special) against the target's Defense, with a small random
-  variance and a 6.25% base critical-hit chance.
-- Moves can also heal, raise/lower stats for a number of stages, apply a
-  damage-over-time effect, or cause a one-turn flinch.
-- The AI opponent scores each of its available moves (expected damage,
-  lethal potential, healing need, buff/debuff value) and picks the best one,
-  with a little randomness so it isn't perfectly predictable.
+- On the first tap, an `AudioContext` is created and `getUserMedia` is
+  requested. If granted, ~0.85s of ambient microphone volume is sampled to
+  set a noise-floor baseline.
+- Each frame, the mic's RMS amplitude is compared against that baseline to
+  produce a normalized 0–1 "blow strength," which drives the flame's lean,
+  flicker, and size continuously (not just on/off).
+- Sustained blow strength above a threshold accumulates a timer; once held
+  long enough (~0.85s), the candle extinguishes — smoke particles spawn,
+  the light dims, and a short generated "whoosh" plays.
+- If the microphone is unavailable or denied, a "hold to blow" button drives
+  the same strength value instead, so the experience still works.
+- All sound (ember crackle, whoosh, ignite) is synthesized at runtime with
+  the Web Audio API — no audio files.
+- Tap the extinguished candle to relight it and try again.
