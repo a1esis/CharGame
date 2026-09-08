@@ -190,8 +190,8 @@
   };
   let emberGlow = 0;
   let blowTimer = 0;
-  const EXTINGUISH_STRENGTH = 0.6;
-  const EXTINGUISH_HOLD = 0.85;
+  const EXTINGUISH_STRENGTH = 0.45;
+  const EXTINGUISH_HOLD = 0.6;
 
   // ---------------------------------------------------------------
   // particles
@@ -297,9 +297,9 @@
 
   function currentMicStrength() {
     const raw = getMicRMS();
-    micSmoothed += (raw - micSmoothed) * 0.35;
-    const floor = micBaseline + 0.015;
-    const ceiling = Math.max(micBaseline * 10, 0.22);
+    micSmoothed += (raw - micSmoothed) * 0.45;
+    const floor = micBaseline + 0.008;
+    const ceiling = Math.max(micBaseline * 5, 0.12);
     return clamp((micSmoothed - floor) / (ceiling - floor), 0, 1);
   }
 
