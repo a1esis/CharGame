@@ -25,9 +25,17 @@
   // ---------------------------------------------------------------
   const CUP_CX = 90;
   const CUP_RIM_Y = 172;
-  const CUP_BASE_Y = 214;
   const CUP_RIM_HALF = 24;
-  const CUP_BASE_HALF = 17;
+  const BOWL_BOTTOM_Y = 199;
+  const BOWL_NECK_HALF = 5;
+
+  const STEM_BOTTOM_Y = 222;
+  const STEM_HALF_W = 2.2;
+
+  const FOOT_Y = 224;
+  const FOOT_HALF_W = 15;
+  const FOOT_HALF_H = 3;
+  const CUP_BASE_Y = FOOT_Y + FOOT_HALF_H;
 
   const SORBET_APEX_Y = 146;
   const SORBET_RIM_HALF = CUP_RIM_HALF + 2;
@@ -78,9 +86,17 @@
   // sorbet: a single rounded, spherically-shaded scoop overflowing a
   // straight-walled lower body, lit primarily from upper-left with a
   // second warm contribution from the candle flame directly above it.
+  // half-width of the glass bowl at row y (rim down to the narrow neck
+  // where it meets the stem) — a concave taper reads as a rounded,
+  // footed dessert bowl rather than a straight-sided cup.
+  function bowlHalfWidth(y) {
+    const ct = clamp((y - CUP_RIM_Y) / (BOWL_BOTTOM_Y - CUP_RIM_Y), 0, 1);
+    return BOWL_NECK_HALF + (CUP_RIM_HALF - BOWL_NECK_HALF) * Math.pow(1 - ct, 0.6);
+  }
+
   function drawSorbet(g, flameIntensity, flameLean) {
     const top = SORBET_APEX_Y;
-    const bottom = CUP_BASE_Y;
+    const bottom = BOWL_BOTTOM_Y;
     const totalRows = bottom - top;
     const glowCX = CUP_CX + flameLean * 4;
     const glowCY = SORBET_APEX_Y + 6;
@@ -95,8 +111,7 @@
         const edge = 1 - dt;
         halfW = Math.max(1, SORBET_RIM_HALF * Math.sqrt(Math.max(0, 1 - edge * edge)));
       } else {
-        const ct = (y - CUP_RIM_Y) / (CUP_BASE_Y - CUP_RIM_Y);
-        halfW = CUP_RIM_HALF + (CUP_BASE_HALF - CUP_RIM_HALF) * ct;
+        halfW = bowlHalfWidth(y);
       }
       const verticalFactor = 1 - t * 0.62;
 
@@ -137,14 +152,14 @@
     }
   }
 
-  // clear glass overlay — only over the straight-walled body below the
-  // rim; the scoop above the rim is bare food, uncovered by the glass.
+  // clear glass overlay: the footed bowl below the rim, a thin stem,
+  // and a flared foot — the scoop above the rim is bare food, uncovered.
   function drawGlass(g) {
-    const rows = CUP_BASE_Y - CUP_RIM_Y;
+    const rows = BOWL_BOTTOM_Y - CUP_RIM_Y;
     for (let i = 0; i < rows; i++) {
       const y = CUP_RIM_Y + i;
       const ct = i / rows;
-      const half = CUP_RIM_HALF + (CUP_BASE_HALF - CUP_RIM_HALF) * ct;
+      const half = bowlHalfWidth(y);
       const left = Math.round(CUP_CX - half);
       const width = Math.round(half * 2);
 
@@ -163,6 +178,68 @@
     }
     g.fillStyle = "rgba(255,255,255,0.32)";
     g.fillRect(CUP_CX - CUP_RIM_HALF, CUP_RIM_Y, CUP_RIM_HALF * 2, 1);
+
+    // stem
+    const stemRows = STEM_BOTTOM_Y - BOWL_BOTTOM_Y;
+    for (let i = 0; i < stemRows; i++) {
+      const y = BOWL_BOTTOM_Y + i;
+      g.fillStyle = "rgba(220,232,236,0.12)";
+      g.fillRect(Math.round(CUP_CX - STEM_HALF_W), y, Math.round(STEM_HALF_W * 2), 1);
+      g.fillStyle = "rgba(255,255,255,0.4)";
+      g.fillRect(Math.round(CUP_CX - STEM_HALF_W * 0.4), y, 1, 1);
+      g.fillStyle = "rgba(15,10,6,0.4)";
+      g.fillRect(Math.round(CUP_CX - STEM_HALF_W), y, 1, 1);
+      g.fillRect(Math.round(CUP_CX + STEM_HALF_W), y, 1, 1);
+    }
+
+    // foot — a flattened ellipse the stem plants into
+    g.beginPath();
+    g.ellipse(CUP_CX, FOOT_Y, FOOT_HALF_W, FOOT_HALF_H, 0, 0, Math.PI * 2);
+    g.fillStyle = "rgba(220,232,236,0.14)";
+    g.fill();
+    g.beginPath();
+    g.ellipse(CUP_CX, FOOT_Y, FOOT_HALF_W, FOOT_HALF_H, 0, 0, Math.PI * 2);
+    g.strokeStyle = "rgba(15,10,6,0.4)";
+    g.lineWidth = 1;
+    g.stroke();
+    g.strokeStyle = "rgba(255,255,255,0.45)";
+    g.beginPath();
+    g.ellipse(CUP_CX, FOOT_Y - 0.6, FOOT_HALF_W * 0.82, FOOT_HALF_H * 0.55, 0, Math.PI * 0.15, Math.PI * 0.85);
+    g.stroke();
+  }
+
+  // a small metal spoon resting on the surface beside the glass
+  function drawSpoon(g) {
+    g.save();
+    g.translate(CUP_CX + FOOT_HALF_W + 7, FOOT_Y - 4);
+    g.rotate(-0.3);
+
+    // contact shadow
+    g.fillStyle = "rgba(0,0,0,0.3)";
+    g.beginPath();
+    g.ellipse(6, 2.5, 15, 3, 0, 0, Math.PI * 2);
+    g.fill();
+
+    const handleLen = 22;
+    g.fillStyle = "rgba(21,19,23,0.9)";
+    g.fillRect(0, -1.2, handleLen, 2.4);
+    g.beginPath();
+    g.arc(handleLen, 0, 1.3, 0, Math.PI * 2);
+    g.fill();
+
+    g.beginPath();
+    g.ellipse(-5, 0, 6.5, 3.8, 0, 0, Math.PI * 2);
+    g.fillStyle = "rgba(24,22,26,0.92)";
+    g.fill();
+
+    g.fillStyle = "rgba(255,255,255,0.22)";
+    g.beginPath();
+    g.ellipse(-6.3, -1.1, 2.4, 1, -0.3, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "rgba(255,255,255,0.13)";
+    g.fillRect(5, -0.5, handleLen - 8, 1);
+
+    g.restore();
   }
 
   function drawCandleBody(g) {
@@ -191,7 +268,7 @@
   let emberGlow = 0;
   let blowTimer = 0;
   const EXTINGUISH_STRENGTH = 0.45;
-  const EXTINGUISH_HOLD = 0.6;
+  const EXTINGUISH_HOLD = 0.32;
 
   // ---------------------------------------------------------------
   // particles
@@ -508,7 +585,7 @@
       if (strength > EXTINGUISH_STRENGTH) {
         blowTimer += dt;
       } else {
-        blowTimer = Math.max(0, blowTimer - dt * 2.2);
+        blowTimer = Math.max(0, blowTimer - dt * 1.1);
       }
       if (blowTimer >= EXTINGUISH_HOLD) {
         extinguish();
@@ -570,6 +647,7 @@
 
     drawSorbet(ctx, effectiveLight, flame.lean);
     drawGlass(ctx);
+    drawSpoon(ctx);
     ctx.drawImage(staticLayer, 0, 0);
 
     // flame
