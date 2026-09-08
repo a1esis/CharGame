@@ -24,32 +24,32 @@
   // scene geometry (low-res pixel coordinates)
   // ---------------------------------------------------------------
   const CUP_CX = 90;
-  const CUP_RIM_Y = 172;
-  const CUP_RIM_HALF = 24;
-  const BOWL_BOTTOM_Y = 199;
-  const BOWL_NECK_HALF = 5;
+  const CUP_RIM_Y = 139;
+  const CUP_RIM_HALF = 38;
+  const BOWL_BOTTOM_Y = 182;
+  const BOWL_NECK_HALF = 8;
 
-  const STEM_BOTTOM_Y = 222;
-  const STEM_HALF_W = 2.2;
+  const STEM_BOTTOM_Y = 212;
+  const STEM_HALF_W = 3;
 
-  const FOOT_Y = 224;
-  const FOOT_HALF_W = 15;
-  const FOOT_HALF_H = 3;
+  const FOOT_Y = 214;
+  const FOOT_HALF_W = 24;
+  const FOOT_HALF_H = 4;
   const CUP_BASE_Y = FOOT_Y + FOOT_HALF_H;
 
-  const SORBET_APEX_Y = 146;
+  const SORBET_APEX_Y = 100;
   const SORBET_RIM_HALF = CUP_RIM_HALF + 2;
 
-  const WAX_TOP_Y = 108;
-  const WAX_BOTTOM_Y = 150;
+  const WAX_TOP_Y = 64;
+  const WAX_BOTTOM_Y = 106;
   const WAX_HALF_W = 4;
 
-  const WICK_TOP_Y = 97;
+  const WICK_TOP_Y = 53;
   const FLAME_X = CUP_CX;
   const FLAME_BASE_Y = WICK_TOP_Y;
 
   const LIGHT_CX = CUP_CX;
-  const LIGHT_CY = 150;
+  const LIGHT_CY = 118;
 
   // ---------------------------------------------------------------
   // static layer — only the candle body never changes frame to frame,
@@ -627,7 +627,7 @@
 
     // light pool
     if (effectiveLight > 0.01) {
-      const r = (95 + flame.lean * 6) * effectiveLight * pulse + 6;
+      const r = (118 + flame.lean * 6) * effectiveLight * pulse + 6;
       const grad = ctx.createRadialGradient(LIGHT_CX, LIGHT_CY, 0, LIGHT_CX, LIGHT_CY, r);
       grad.addColorStop(0, `rgba(255,176,92,${0.55 * effectiveLight})`);
       grad.addColorStop(0.45, `rgba(230,130,60,${0.28 * effectiveLight})`);
