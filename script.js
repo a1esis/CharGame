@@ -241,29 +241,41 @@
     g.rotate(angle);
 
     // contact shadow
-    g.fillStyle = "rgba(0,0,0,0.3)";
+    g.fillStyle = "rgba(0,0,0,0.35)";
     g.beginPath();
     g.ellipse(11, 2.5, 15, 3, 0, 0, Math.PI * 2);
     g.fill();
 
+    // polished-metal body — bright enough to read clearly even once the
+    // candle's out and the ambient darkening has kicked in
     const handleLen = 22;
-    g.fillStyle = "rgba(21,19,23,0.9)";
-    g.fillRect(5, -1.2, handleLen, 2.4);
+    g.fillStyle = "rgba(172,170,176,0.96)";
+    g.fillRect(5, -1.4, handleLen, 2.8);
     g.beginPath();
-    g.arc(5 + handleLen, 0, 1.3, 0, Math.PI * 2);
+    g.arc(5 + handleLen, 0, 1.5, 0, Math.PI * 2);
     g.fill();
 
     g.beginPath();
-    g.ellipse(0, 0, 6.5, 3.8, 0, 0, Math.PI * 2);
-    g.fillStyle = "rgba(24,22,26,0.92)";
+    g.ellipse(0, 0, 6.8, 4, 0, 0, Math.PI * 2);
+    g.fillStyle = "rgba(182,180,186,0.97)";
     g.fill();
 
-    g.fillStyle = "rgba(255,255,255,0.22)";
+    // dark rim so the bright metal still reads as an edged, dimensional
+    // object rather than a flat blob
+    g.strokeStyle = "rgba(20,18,22,0.5)";
+    g.lineWidth = 0.8;
     g.beginPath();
-    g.ellipse(-1.3, -1.1, 2.4, 1, -0.3, 0, Math.PI * 2);
+    g.ellipse(0, 0, 6.8, 4, 0, 0, Math.PI * 2);
+    g.stroke();
+
+    g.fillStyle = "rgba(255,255,255,0.65)";
+    g.beginPath();
+    g.ellipse(-1.4, -1.3, 2.6, 1.1, -0.3, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = "rgba(255,255,255,0.13)";
-    g.fillRect(10, -0.5, handleLen - 8, 1);
+    g.fillStyle = "rgba(255,255,255,0.4)";
+    g.fillRect(10, -0.6, handleLen - 8, 1.2);
+    g.fillStyle = "rgba(60,56,64,0.35)";
+    g.fillRect(10, 0.8, handleLen - 8, 0.8);
 
     g.restore();
   }
@@ -526,7 +538,7 @@
       messageEl.style.opacity = "1";
       setTimeout(() => {
         if (eatingStarted) return; // spoon's already out — leave it be
-        messageEl.textContent = "you did it. — tap to relight";
+        messageEl.textContent = "use the spoon to eat — or tap to relight";
       }, 2600);
     }, 1100);
   }

@@ -84,6 +84,8 @@ html, body {
   text-shadow: 0 0 6px rgba(0,0,0,0.9);
   transition: opacity 1.4s ease;
   user-select: none;
+  max-width: min(90vw, 360px);
+  padding: 0 12px;
 }
 
 #hint {
@@ -94,9 +96,10 @@ html, body {
 #message {
   bottom: 16%;
   font-size: 12px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   color: var(--ink);
   opacity: 0;
+  max-width: min(90vw, 420px);
 }
 
 #blow-btn {
