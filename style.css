@@ -139,16 +139,16 @@ html, body {
 }
 #intro-title {
   margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  font-size: clamp(22px, 6vw, 34px);
+  letter-spacing: 0.06em;
   color: var(--ink-dim);
   text-align: center;
   padding: 0 24px;
 }
 #intro-action {
   margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: clamp(14px, 3.2vw, 18px);
+  letter-spacing: 0.12em;
   color: var(--ink);
   opacity: 0.65;
   animation: pulseSlow 2.6s ease-in-out infinite;
@@ -161,5 +161,4 @@ html, body {
 
 @media (max-width: 480px) {
   .veil-text { font-size: 10px; }
-  #intro-title { font-size: 11px; }
 }
