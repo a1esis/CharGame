@@ -44,8 +44,10 @@
   const LIGHT_CY = 150;
 
   // ---------------------------------------------------------------
-  // static layer — cup + sorbet + candle never change frame to frame,
-  // so they're drawn once onto an offscreen canvas and blitted each tick
+  // static layer — only the candle body never changes frame to frame,
+  // so it's drawn once onto an offscreen canvas and blitted each tick.
+  // the sorbet + glass are drawn fresh every frame since their shading
+  // reacts live to the candle's flame intensity.
   // ---------------------------------------------------------------
   const staticLayer = document.createElement("canvas");
   staticLayer.width = RENDER_W;
@@ -54,54 +56,113 @@
 
   function buildStaticLayer() {
     sctx.clearRect(0, 0, RENDER_W, RENDER_H);
-    drawCup(sctx);
-    drawSorbet(sctx);
     drawCandleBody(sctx);
   }
 
-  function drawCup(g) {
-    const top = CUP_RIM_Y;
-    const bottom = CUP_BASE_Y;
-    const rows = bottom - top;
-    for (let i = 0; i < rows; i++) {
-      const t = i / rows;
-      const half = CUP_RIM_HALF + (CUP_BASE_HALF - CUP_RIM_HALF) * t;
-      const y = top + i;
-      g.fillStyle = i % 2 === 0 ? "rgba(206,200,184,0.24)" : "rgba(146,140,124,0.22)";
-      g.fillRect(Math.round(CUP_CX - half), y, Math.round(half * 2), 1);
-      g.fillStyle = "rgba(18,12,7,0.55)";
-      g.fillRect(Math.round(CUP_CX - half), y, 1, 1);
-      g.fillRect(Math.round(CUP_CX + half - 1), y, 1, 1);
-    }
-    g.fillStyle = "rgba(238,232,216,0.6)";
-    g.fillRect(CUP_CX - CUP_RIM_HALF, top, CUP_RIM_HALF * 2, 1);
+  function lerp3(c1, c2, t) {
+    return [c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t, c1[2] + (c2[2] - c1[2]) * t];
   }
 
-  function drawSorbet(g) {
-    const apexY = SORBET_APEX_Y;
-    const rimY = CUP_RIM_Y;
-    const domeRows = rimY - apexY;
-    for (let i = 0; i < domeRows; i++) {
-      const y = apexY + i;
-      const t = i / domeRows;
-      const edge = 1 - t;
-      const halfW = Math.max(1, SORBET_RIM_HALF * Math.sqrt(Math.max(0, 1 - edge * edge)));
+  const SORBET_DEEP = [104, 48, 32];
+  const SORBET_SHADOW = [176, 82, 42];
+  const SORBET_MID = [237, 144, 64];
+  const SORBET_HILITE = [255, 214, 132];
+  const SORBET_GLOW = [255, 236, 192];
+
+  function sorbetColorAt(brightness) {
+    if (brightness < 0.33) return lerp3(SORBET_DEEP, SORBET_SHADOW, brightness / 0.33);
+    if (brightness < 0.68) return lerp3(SORBET_SHADOW, SORBET_MID, (brightness - 0.33) / 0.35);
+    return lerp3(SORBET_MID, SORBET_HILITE, Math.min(1, (brightness - 0.68) / 0.32));
+  }
+
+  // sorbet: a single rounded, spherically-shaded scoop overflowing a
+  // straight-walled lower body, lit primarily from upper-left with a
+  // second warm contribution from the candle flame directly above it.
+  function drawSorbet(g, flameIntensity, flameLean) {
+    const top = SORBET_APEX_Y;
+    const bottom = CUP_BASE_Y;
+    const totalRows = bottom - top;
+    const glowCX = CUP_CX + flameLean * 4;
+    const glowCY = SORBET_APEX_Y + 6;
+    const glowRadius = SORBET_RIM_HALF * 1.4;
+
+    for (let i = 0; i < totalRows; i++) {
+      const y = top + i;
+      const t = i / totalRows;
+      let halfW;
+      if (y < CUP_RIM_Y) {
+        const dt = (y - SORBET_APEX_Y) / (CUP_RIM_Y - SORBET_APEX_Y);
+        const edge = 1 - dt;
+        halfW = Math.max(1, SORBET_RIM_HALF * Math.sqrt(Math.max(0, 1 - edge * edge)));
+      } else {
+        const ct = (y - CUP_RIM_Y) / (CUP_BASE_Y - CUP_RIM_Y);
+        halfW = CUP_RIM_HALF + (CUP_BASE_HALF - CUP_RIM_HALF) * ct;
+      }
+      const verticalFactor = 1 - t * 0.62;
+
       for (let x = -halfW; x < halfW; x++) {
         const px = Math.round(CUP_CX + x);
-        const speck = (px * 3 + y * 7) % 11 === 0;
-        let color;
-        if (speck) color = "rgba(250,214,110,0.95)";
-        else if ((px + y) % 2 === 0) color = "rgba(233,138,76,0.95)";
-        else color = "rgba(203,108,58,0.95)";
-        g.fillStyle = color;
+        const xNorm = x / halfW;
+        const biasedX = clamp(xNorm + 0.22, -1, 1);
+        const horizontalFactor = 1 - Math.pow(Math.abs(biasedX), 1.6) * 0.75;
+        let brightness = clamp(verticalFactor * horizontalFactor, 0, 1);
+
+        const dx = px - glowCX;
+        const dy = y - glowCY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const glow = Math.max(0, 1 - dist / glowRadius) * flameIntensity * 0.5;
+        brightness = clamp(brightness + glow, 0, 1);
+
+        let [r, gg, b] = sorbetColorAt(brightness);
+        if (glow > 0.15) {
+          const gt = Math.min(1, (glow - 0.15) / 0.5);
+          [r, gg, b] = lerp3([r, gg, b], SORBET_GLOW, gt * 0.4);
+        }
+
+        // fixed (non-shimmering) fleck texture — icy sparkle / pulp specks
+        const fleckSeed = (px * 7 + y * 13) % 23;
+        if (fleckSeed === 0) {
+          r = Math.min(255, r + 30);
+          gg = Math.min(255, gg + 26);
+          b = Math.min(255, b + 14);
+        } else if (fleckSeed === 11) {
+          r = Math.max(0, r - 22);
+          gg = Math.max(0, gg - 18);
+          b = Math.max(0, b - 10);
+        }
+
+        g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
         g.fillRect(px, y, 1, 1);
       }
     }
-    // a soft highlight catching light on the upper-left of the dome
-    g.fillStyle = "rgba(255,224,150,0.18)";
-    g.beginPath();
-    g.ellipse(CUP_CX - 8, apexY + domeRows * 0.35, 7, 5, 0, 0, Math.PI * 2);
-    g.fill();
+  }
+
+  // clear glass overlay — only over the straight-walled body below the
+  // rim; the scoop above the rim is bare food, uncovered by the glass.
+  function drawGlass(g) {
+    const rows = CUP_BASE_Y - CUP_RIM_Y;
+    for (let i = 0; i < rows; i++) {
+      const y = CUP_RIM_Y + i;
+      const ct = i / rows;
+      const half = CUP_RIM_HALF + (CUP_BASE_HALF - CUP_RIM_HALF) * ct;
+      const left = Math.round(CUP_CX - half);
+      const width = Math.round(half * 2);
+
+      g.fillStyle = "rgba(214,228,232,0.05)";
+      g.fillRect(left, y, width, 1);
+
+      const streakOpacity = Math.max(0, 0.36 * (1 - Math.abs(ct - 0.38) * 1.1));
+      g.fillStyle = `rgba(255,255,255,${streakOpacity})`;
+      g.fillRect(Math.round(CUP_CX - half * 0.55), y, 2, 1);
+      g.fillStyle = `rgba(255,255,255,${streakOpacity * 0.32})`;
+      g.fillRect(Math.round(CUP_CX + half * 0.7), y, 1, 1);
+
+      g.fillStyle = "rgba(15,10,6,0.45)";
+      g.fillRect(left, y, 1, 1);
+      g.fillRect(left + width - 1, y, 1, 1);
+    }
+    g.fillStyle = "rgba(255,255,255,0.32)";
+    g.fillRect(CUP_CX - CUP_RIM_HALF, CUP_RIM_Y, CUP_RIM_HALF * 2, 1);
   }
 
   function drawCandleBody(g) {
@@ -507,6 +568,8 @@
       ctx.fillRect(Math.round(d.x + Math.sin(d.phase * 0.6) * d.drift * 0.1), Math.round(d.y), 1, 1);
     }
 
+    drawSorbet(ctx, effectiveLight, flame.lean);
+    drawGlass(ctx);
     ctx.drawImage(staticLayer, 0, 0);
 
     // flame
