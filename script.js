@@ -113,9 +113,12 @@
     return lerp(BOWL_BOTTOM_Y, SORBET_APEX_Y, clamp(level, 0, 1));
   }
 
-  function isOverSorbet(x, y, level) {
-    const topY = sorbetTopY(level);
-    if (y < topY || y > BOWL_BOTTOM_Y) return false;
+  // hit-test for the spoon: deliberately uses the *full* bowl footprint,
+  // not just whatever's currently still visible. Gating this by the
+  // shrinking remaining-level band would make the last little bit
+  // impossible to reach, since that band narrows to a sliver near 0.
+  function isOverSorbet(x, y) {
+    if (y < SORBET_APEX_Y || y > BOWL_BOTTOM_Y) return false;
     return Math.abs(x - CUP_CX) <= sorbetHalfWidthAt(y);
   }
 
@@ -694,7 +697,7 @@
     if (spoon.dragging) {
       const dist = Math.hypot(spoon.x - spoon.lastX, spoon.y - spoon.lastY);
       if (dist > 0.02 && sorbetLevel > 0) {
-        if (isOverSorbet(spoon.x, spoon.y, sorbetLevel) || isOverSorbet(spoon.lastX, spoon.lastY, sorbetLevel)) {
+        if (isOverSorbet(spoon.x, spoon.y) || isOverSorbet(spoon.lastX, spoon.lastY)) {
           sorbetLevel = clamp(sorbetLevel - dist * DEPLETION_PER_PX, 0, 1);
         }
       }
