@@ -322,8 +322,6 @@
   let fallbackPressed = false;
   let fallbackStrength = 0;
 
-  let emberSound = null;
-
   function getMicRMS() {
     analyser.getByteTimeDomainData(micData);
     let sumSquares = 0;
@@ -383,38 +381,6 @@
   // ---------------------------------------------------------------
   // audio: tiny generated sound effects (no external files)
   // ---------------------------------------------------------------
-  function startEmberSound() {
-    if (!actx || emberSound) return;
-    const bufferSize = actx.sampleRate * 2;
-    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-    const src = actx.createBufferSource();
-    src.buffer = buffer;
-    src.loop = true;
-    const band = actx.createBiquadFilter();
-    band.type = "bandpass";
-    band.frequency.value = 700;
-    band.Q.value = 0.6;
-    const gain = actx.createGain();
-    gain.gain.value = 0;
-    src.connect(band).connect(gain).connect(actx.destination);
-    src.start();
-    gain.gain.linearRampToValueAtTime(0.018, actx.currentTime + 1.6);
-    emberSound = { src, gain };
-  }
-
-  function stopEmberSound() {
-    if (!emberSound) return;
-    const { src, gain } = emberSound;
-    gain.gain.linearRampToValueAtTime(0, actx.currentTime + 0.5);
-    setTimeout(() => {
-      try {
-        src.stop();
-      } catch (e) {}
-    }, 600);
-    emberSound = null;
-  }
 
   function playWhoosh() {
     if (!actx) return;
@@ -476,7 +442,6 @@
       ok = false;
     }
     sceneState = "lit";
-    startEmberSound();
 
     if (ok) {
       hintEl.style.opacity = "1";
@@ -496,7 +461,6 @@
     emberGlow = 1;
     spawnSmokeBurst();
     playWhoosh();
-    stopEmberSound();
     if (hintTimer) clearTimeout(hintTimer);
     hintEl.style.opacity = "0";
     setTimeout(() => {
@@ -521,7 +485,6 @@
     fallbackStrength = 0;
     messageEl.style.opacity = "0";
     playIgnite();
-    startEmberSound();
     setTimeout(() => {
       messageEl.textContent = "";
     }, 1450);

@@ -45,10 +45,10 @@ a secure context (`https://` or `localhost`).
   produce a normalized 0–1 "blow strength," which drives the flame's lean,
   flicker, and size continuously (not just on/off).
 - Sustained blow strength above a threshold accumulates a timer; once held
-  long enough (~0.85s), the candle extinguishes — smoke particles spawn,
+  long enough (~0.3s), the candle extinguishes — smoke particles spawn,
   the light dims, and a short generated "whoosh" plays.
 - If the microphone is unavailable or denied, a "hold to blow" button drives
   the same strength value instead, so the experience still works.
-- All sound (ember crackle, whoosh, ignite) is synthesized at runtime with
-  the Web Audio API — no audio files.
+- All sound (whoosh, ignite) is synthesized at runtime with the Web Audio
+  API — no audio files.
 - Tap the extinguished candle to relight it and try again.
